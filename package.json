@@ -1,0 +1,31 @@
+{
+  "name": "careflow",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:gateway": "npm run dev -w @careflow/api-gateway",
+    "dev:auth": "npm run dev -w @careflow/auth-service",
+    "dev:patient": "npm run dev -w @careflow/patient-service",
+    "dev:appointment": "npm run dev -w @careflow/appointment-service",
+    "dev:billing": "npm run dev -w @careflow/billing-service",
+    "dev:notification": "npm run dev -w @careflow/notification-service",
+    "dev:audit": "npm run dev -w @careflow/audit-service",
+    "build:shared": "npm run build -w @careflow/shared",
+    "build:all": "npm run build:shared && npm run build --workspaces --if-present",
+    "lint:all": "npm run lint --workspaces --if-present",
+    "test:all": "npm run test --workspaces --if-present",
+    "docker:infra": "docker-compose -f infrastructure/docker/docker-compose.yml up -d",
+    "docker:infra:down": "docker-compose -f infrastructure/docker/docker-compose.yml down",
+    "docker:infra:clean": "docker-compose -f infrastructure/docker/docker-compose.yml down -v"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

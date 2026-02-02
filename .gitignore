@@ -1,0 +1,35 @@
+# Node modules for all packages
+node_modules/
+**/node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*.local
+.env.local
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Temporary files
+*.tsbuildinfo
+*.swp
+.DS_Store
+
+# IDE / editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Docker
+*.env.docker
