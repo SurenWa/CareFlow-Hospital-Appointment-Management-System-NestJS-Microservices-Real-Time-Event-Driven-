@@ -1,3 +1,254 @@
+# version: '3.8'
+
+# # CareFlow Local Development Infrastructure
+# # Run with: docker-compose up -d
+# # Stop with: docker-compose down
+# # Clean up: docker-compose down -v (removes volumes)
+# # Run with tools: docker-compose --profile tools up -d
+
+# services:
+#   # ==================== Message Broker ====================
+#   rabbitmq:
+#     image: rabbitmq:3.12-management-alpine
+#     container_name: careflow-rabbitmq
+#     ports:
+#       - "5672:5672"   # AMQP protocol
+#       - "15672:15672" # Management UI
+#     environment:
+#       RABBITMQ_DEFAULT_USER: careflow
+#       RABBITMQ_DEFAULT_PASS: careflow_dev
+#       RABBITMQ_DEFAULT_VHOST: careflow
+#     volumes:
+#       - rabbitmq_data:/var/lib/rabbitmq
+#     healthcheck:
+#       test: rabbitmq-diagnostics -q ping
+#       interval: 30s
+#       timeout: 10s
+#       retries: 5
+#       start_period: 30s
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+
+#   # ==================== Cache & Session Store ====================
+#   redis:
+#     image: redis:7-alpine
+#     container_name: careflow-redis
+#     ports:
+#       - "6379:6379"
+#     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+#     volumes:
+#       - redis_data:/data
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 10s
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+
+#   # ==================== MongoDB (Auth, Notification, Audit) ====================
+#   mongodb:
+#     image: mongo:7.0
+#     container_name: careflow-mongodb
+#     ports:
+#       - "27017:27017"
+#     environment:
+#       MONGO_INITDB_ROOT_USERNAME: careflow
+#       MONGO_INITDB_ROOT_PASSWORD: careflow_dev
+#       MONGO_INITDB_DATABASE: careflow
+#     volumes:
+#       - mongodb_data:/data/db
+#       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+#     healthcheck:
+#       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+#       interval: 10s
+#       timeout: 10s
+#       retries: 5
+#       start_period: 30s
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+
+#   # ==================== PostgreSQL (Patient, Appointment, Billing) ====================
+#   postgres:
+#     image: postgres:16-alpine
+#     container_name: careflow-postgres
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       POSTGRES_USER: careflow
+#       POSTGRES_PASSWORD: careflow_dev
+#       POSTGRES_DB: careflow
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#       - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U careflow -d careflow"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 20s
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+
+#   # ==================== Observability: Prometheus ====================
+#   prometheus:
+#     image: prom/prometheus:v2.48.0
+#     container_name: careflow-prometheus
+#     ports:
+#       - "9090:9090"
+#     volumes:
+#       - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#       - prometheus_data:/prometheus
+#     command:
+#       - '--config.file=/etc/prometheus/prometheus.yml'
+#       - '--storage.tsdb.path=/prometheus'
+#       - '--web.enable-lifecycle'
+#       - '--web.enable-admin-api'
+#     healthcheck:
+#       test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 30s
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+
+#   # ==================== Observability: Grafana ====================
+#   grafana:
+#     image: grafana/grafana:10.2.2
+#     container_name: careflow-grafana
+#     ports:
+#       - "3100:3000"
+#     environment:
+#       GF_SECURITY_ADMIN_USER: admin
+#       GF_SECURITY_ADMIN_PASSWORD: admin
+#       GF_USERS_ALLOW_SIGN_UP: "false"
+#       GF_SERVER_ROOT_URL: http://localhost:3100
+#       GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#       - ../grafana/provisioning:/etc/grafana/provisioning:ro
+#     healthcheck:
+#       test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 30s
+#     depends_on:
+#       prometheus:
+#         condition: service_healthy
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+
+#   # ==================== Mail Server (Development) ====================
+#   mailhog:
+#     image: mailhog/mailhog:latest
+#     container_name: careflow-mailhog
+#     ports:
+#       - "1025:1025"  # SMTP server
+#       - "8025:8025"  # Web UI
+#     healthcheck:
+#       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 10s
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+
+#   # ==================== Redis Commander (Redis UI - Optional) ====================
+#   redis-commander:
+#     image: rediscommander/redis-commander:latest
+#     container_name: careflow-redis-commander
+#     ports:
+#       - "8081:8081"
+#     environment:
+#       REDIS_HOSTS: local:redis:6379
+#     depends_on:
+#       redis:
+#         condition: service_healthy
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+#     profiles:
+#       - tools
+
+#   # ==================== Mongo Express (MongoDB UI - Optional) ====================
+#   mongo-express:
+#     image: mongo-express:latest
+#     container_name: careflow-mongo-express
+#     ports:
+#       - "8082:8081"
+#     environment:
+#       ME_CONFIG_MONGODB_ADMINUSERNAME: careflow
+#       ME_CONFIG_MONGODB_ADMINPASSWORD: careflow_dev
+#       ME_CONFIG_MONGODB_URL: mongodb://careflow:careflow_dev@mongodb:27017/
+#       ME_CONFIG_BASICAUTH_USERNAME: admin
+#       ME_CONFIG_BASICAUTH_PASSWORD: admin
+#     depends_on:
+#       mongodb:
+#         condition: service_healthy
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+#     profiles:
+#       - tools
+
+#   # ==================== pgAdmin (PostgreSQL UI - Optional) ====================
+#   pgadmin:
+#     image: dpage/pgadmin4:latest
+#     container_name: careflow-pgadmin
+#     ports:
+#       - "8083:80"
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@careflow.local
+#       PGADMIN_DEFAULT_PASSWORD: admin
+#       PGADMIN_CONFIG_SERVER_MODE: "False"
+#     volumes:
+#       - pgadmin_data:/var/lib/pgadmin
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#     networks:
+#       - careflow-network
+#     restart: unless-stopped
+#     profiles:
+#       - tools
+
+# # ==================== Networks ====================
+# networks:
+#   careflow-network:
+#     driver: bridge
+#     name: careflow-network
+#     ipam:
+#       config:
+#         - subnet: 172.28.0.0/16
+
+# # ==================== Volumes ====================
+# volumes:
+#   rabbitmq_data:
+#     name: careflow-rabbitmq-data
+#   redis_data:
+#     name: careflow-redis-data
+#   mongodb_data:
+#     name: careflow-mongodb-data
+#   postgres_data:
+#     name: careflow-postgres-data
+#   prometheus_data:
+#     name: careflow-prometheus-data
+#   grafana_data:
+#     name: careflow-grafana-data
+#   pgadmin_data:
+#     name: careflow-pgadmin-data
+
 version: '3.8'
 
 # CareFlow Local Development Infrastructure
@@ -53,15 +304,14 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: careflow-mongodb
-    ports:
-      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: careflow
       MONGO_INITDB_ROOT_PASSWORD: careflow_dev
-      MONGO_INITDB_DATABASE: careflow
+      MONGO_INITDB_DATABASE: careflow_auth
+    ports:
+      - "27018:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
