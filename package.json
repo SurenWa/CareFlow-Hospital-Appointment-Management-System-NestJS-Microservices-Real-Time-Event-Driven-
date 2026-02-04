@@ -23,6 +23,7 @@
     "docker:infra:clean": "docker-compose -f infrastructure/docker/docker-compose.yml down -v"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.8",
     "typescript": "^5.3.3"
   },
   "engines": {

@@ -1,0 +1,142 @@
+// Prisma Schema for Patient Service
+// Run: npx prisma migrate dev --name init
+
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+    provider = "postgresql"    
+}
+
+// ==================== Enums ====================
+
+enum Gender {
+    MALE
+    FEMALE
+    OTHER
+    PREFER_NOT_TO_SAY
+}
+
+enum BloodType {
+    A_POSITIVE
+    A_NEGATIVE
+    B_POSITIVE
+    B_NEGATIVE
+    AB_POSITIVE
+    AB_NEGATIVE
+    O_POSITIVE
+    O_NEGATIVE
+    UNKNOWN
+}
+
+enum RecordType {
+    LAB_RESULT
+    PRESCRIPTION
+    IMAGING
+    DIAGNOSIS
+    PROCEDURE
+    VACCINATION
+    ALLERGY
+    NOTE
+    OTHER
+}
+
+// ==================== Models ====================
+
+model Patient {
+    id String @id @default(uuid())
+
+    // Link to Auth Service user
+    userId String @unique @map("user_id")
+
+    // Personal Information
+    firstName   String   @map("first_name")
+    lastName    String   @map("last_name")
+    dateOfBirth DateTime @map("date_of_birth")
+    gender      Gender   @default(PREFER_NOT_TO_SAY)
+
+    // Contact Information
+    email String  @unique
+    phone String?
+
+    // Address
+    addressLine1 String? @map("address_line_1")
+    addressLine2 String? @map("address_line_2")
+    city         String?
+    state        String?
+    postalCode   String? @map("postal_code")
+    country      String  @default("US")
+
+    // Medical Information
+    bloodType         BloodType @default(UNKNOWN) @map("blood_type")
+    allergies         String[]  @default([])
+    chronicConditions String[]  @default([]) @map("chronic_conditions")
+
+    // Emergency Contact
+    emergencyContactName     String? @map("emergency_contact_name")
+    emergencyContactPhone    String? @map("emergency_contact_phone")
+    emergencyContactRelation String? @map("emergency_contact_relation")
+
+    // Insurance Information
+    insuranceProvider     String? @map("insurance_provider")
+    insurancePolicyNumber String? @map("insurance_policy_number")
+    insuranceGroupNumber  String? @map("insurance_group_number")
+
+    // Status
+    isActive Boolean @default(true) @map("is_active")
+
+    // Timestamps
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    // Relations
+    medicalRecords MedicalRecord[]
+
+    @@index([userId])
+    @@index([email])
+    @@index([lastName, firstName])
+    @@map("patients")
+}
+
+model MedicalRecord {
+    id String @id @default(uuid())
+
+    // Link to Patient
+    patientId String  @map("patient_id")
+    patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+    // Record Information
+    type        RecordType
+    title       String
+    description String?
+
+    // Record Data (JSON for flexibility)
+    data Json?
+
+    // File Attachment (if any)
+    fileName     String? @map("file_name")
+    fileUrl      String? @map("file_url")
+    fileMimeType String? @map("file_mime_type")
+    fileSize     Int?    @map("file_size")
+
+    // Provider Information
+    providerId   String? @map("provider_id")
+    providerName String? @map("provider_name")
+
+    // Record Date (when the medical event occurred)
+    recordDate DateTime @map("record_date")
+
+    // Status
+    isConfidential Boolean @default(false) @map("is_confidential")
+
+    // Timestamps
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    @@index([patientId])
+    @@index([type])
+    @@index([recordDate])
+    @@map("medical_records")
+}
